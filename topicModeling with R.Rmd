@@ -1,0 +1,240 @@
+---
+title: "Topic modeling"
+author: "Ali Frady"
+date: "8/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries}
+library(tidytext)
+library(quanteda)
+library(ggplot2)
+library(tm)
+library(topicmodels)
+library(tidyverse)
+library(wordcloud)
+library(gutenbergr)
+```
+
+Simple LDA model
+In this exercise you will work through all steps involved in making a topic model analysis. For simplicity, we will use the tiny corpus of five sentences/documents that you have seen earlier.
+
+You are given data frame corpus with two columns: id is the document id, and text is the text of the document.
+
+
+```{r exercice 1}
+corpus <- readRDS('data/corpus.rds')
+dtm <- corpus %>% 
+   unnest_tokens(input=text, output=word) %>% 
+   count(id, word) %>% 
+   cast_dtm(document=id, term=word, value=n)
+
+# Run the LDA for two topics
+mod <- LDA(x=dtm, k=2, method="Gibbs",control=list(alpha=1, delta=0.1, seed=10005))
+
+# Retrieve the probabilities of word `will` belonging to topics 1 and 2
+tidy(mod, matrix="beta") %>%
+  filter(term == "will")
+
+# Make a stacked column chart showing the probabilities of documents belonging to topics
+tidy(mod, matrix="gamma") %>% 
+  mutate(topic = as.factor(topic)) %>% 
+  ggplot(aes(x=document, y=gamma)) + 
+  geom_col(aes(fill=topic))
+
+```
+Effect of argument alpha
+In this exercise you will compare how the quality of model's fit to data varies with argument alpha
+
+```{r Effect_of_argument_alpha}
+# Fit LDA topic model using Gibbs sampling for 2 topics
+mod1 <- LDA(x=dtm, k=2, method="Gibbs",
+           control=list(alpha=1, seed=10005, thin=1))
+
+# Display the probabilities of topics in documents side by side
+tidy(mod1, matrix = 'gamma') %>% spread(topic, gamma)
+
+# Fit LDA topic model using Gibbs sampling for 2 topics
+mod2 <- LDA(x=dtm, k=2, method="Gibbs",
+           control=list(alpha=25, seed=10005, thin=1))
+
+# Display the probabilities of topics in documents side by side
+tidy(mod2, matrix = 'gamma') %>% spread(topic, gamma)
+```
+
+You are given a table corpus: column text contains the documents, column id - the document ids. Your task is to make a document-term matrix. You've done this before, so it should be easy.
+
+```{r Making_a_dtm_refresher}
+# Create the document-term matrix
+dtm <- corpus %>%
+  unnest_tokens(output=word, input=text) %>%
+  count(id, word) %>%
+  cast_dtm(document=id, term=word, value=n)
+
+# Display dtm as a matrix
+as.matrix(dtm)
+```
+
+Removing stopwords
+It takes only one new line of code to remove the stopwords. Fill in the function names to make the code work.
+
+```{r Removing_stopwords}
+# Create the document-term matrix with stop words removed
+dtm <- corpus %>%
+  unnest_tokens(output=word, input=text) %>%
+  anti_join(stop_words) %>% 
+  count(id, word) %>%
+  cast_dtm(document=id, term=word, value=n)
+
+# Display the matrix
+as.matrix(dtm)
+```
+Keeping the needed words
+You are given the table with documents corpus and the table dictionary with one column - word, - containing the words we want to keep in the document-term matrix. Use inner_join to create a document-term matrix with the needed words.
+```{r Keeping the needed words}
+dictionary <-data.frame(word=c( "bank", "fines", "loans", "pay", "new", "opened", "restaurant"))
+# Perform inner_join with the dictionary table
+dtm <- corpus %>%
+  unnest_tokens(output=word, input=text) %>%
+  inner_join(dictionary) %>% 
+  count(id, word) %>%
+  cast_dtm(document=id, term=word, value=n)
+
+# Display the summary of dtm
+as.matrix(dtm)
+```
+
+
+Wordcloud of term frequency
+You are given table corpus containing the "toy" corpus with five sentences/documents. You will practice modifying the word cloud to make it more interesting.
+
+```{r Wordcloud of term frequency}
+# Generate the counts of words in the corpus
+word_frequencies <- corpus %>% 
+  unnest_tokens(input=text, output=word) %>%
+  count(word)
+
+# Create a wordcloud
+wordcloud(words=word_frequencies$word, 
+          freq=word_frequencies$n,
+          min.freq=1,
+          max.words=10,
+          colors=c("DarkOrange", "Blue"),
+          random.order=FALSE,
+          random.color=FALSE)
+```
+
+
+LDA model fitting - first iteration
+This exercise covers the steps from making a document-term matrix to fitting a topic model and examining the terms in topics.
+
+You are given a table history with two columns: chapter for chapter number, and text for chapter text.
+
+
+```{r LDA model fitting - first iteration}
+history <- readRDS('data/history.rds') %>% filter(!is.na(text))
+# Construct a document-term matrix
+dtm <- history %>% 
+	unnest_tokens(input=text, output=word) %>% 
+    anti_join(stop_words) %>% 
+    count(chapter, word) %>% 
+    cast_dtm(document=chapter, term=word, value=n)
+
+# Insert the missing arguments
+mod <- LDA(x=dtm, k=4, method="Gibbs", 
+           control=list(alpha=1, seed=10005))
+
+# Display top 15 words of each topic
+terms(mod, k=15)
+```
+Capturing the actions - dtm with verbs
+In this exercise you will construct the dtm that will consist entirely of verbs, and then re-run the LDA algorithm.
+
+You are given the dataframe verbs containing present and past tense forms of English verbs.
+
+```{r Capturing the actions - dtm with verbs}
+# Display the structure of the verbs dataframe
+verbs <- readRDS('data/verbs.rds')
+str(verbs)
+
+# Construct a document-term matrix
+dtm <- history %>% 
+	unnest_tokens(input=text, output=word) %>% 
+    inner_join(verbs, by=c("word"="Past")) %>% 
+    count(chapter, word) %>% 
+    cast_dtm(document=chapter, term=word, value=n)
+
+# Fit LDA for four topics
+mod <- LDA(x=dtm, k=4, method="Gibbs",
+          control=list(alpha=1, seed=10005))
+
+# Display top 25 words from each topic
+terms(mod, k=25)
+```
+
+Making a chart
+Variable mod contains the LDA model that you fitted in the previous exercise. All necessary libraries have already been loaded for you.
+
+```{r Making a chart}
+# Extract matrix gamma and plot it
+tidy(mod, "gamma") %>% 
+	mutate(document=as.numeric(document)) %>% 
+	ggplot(aes(x=document, y=gamma)) + 
+	geom_col(aes(fill=factor(topic)))
+
+# Display the words whose probability is above the threshold
+terms(mod, threshold=0.0075 )
+
+
+# Extract matrix gamma and plot it
+tidy(mod, "gamma") %>% 
+	mutate(document=as.numeric(document)) %>% 
+	ggplot(aes(x=document, y=gamma)) + 
+	geom_line(aes(color=factor(topic))) + 
+    labs(x="Chapter", y="Topic probability") +
+	scale_color_manual(values=brewer.pal(n=4, "Set1"), name="Topic")
+```
+
+Use wordclouds
+The flaw of function terms() is that it does not display the absolute value of the word probability. By comparison, wordclouds can convey that information through font size. In this exercise you will make wordclouds for topics found in the text on Byzantine Empire.
+
+You are given the object with LDA model mod. You're going to complete the script to draw four wordlcouds, one for each topic. You will be able to cycle through them in the output window.
+
+
+```{r Making a chartUse wordclouds}
+# Display wordclouds one at a time
+for (j in 1:4) {
+  # Generate a table with word frequences for topic j
+  word_frequencies <- tidy(mod, matrix="beta") %>% 
+    mutate(n = trunc(beta * 10000)) %>% 
+    filter(topic == j)
+
+  # Display word cloud
+  wordcloud(words = word_frequencies$term, 
+            freq = word_frequencies$n,
+            max.words = 20,
+            scale = c(3, 0.5),
+            colors = c("DarkOrange", "CornflowerBlue", "DarkRed"), 
+            rot.per = 0.3)
+}
+```
+
+Same k, different alpha
+You are given a document-term matrix dtm describing the five-sentence corpus of two topics. You will re-run the LDA algorithm, changing the value of alpha, and compare the outcomes.
+
+```{r Same k, different alpha}
+# Fit a topic model using LDA with Gibbs sampling
+mod = LDA(x=dtm, k=2, method="Gibbs", 
+          control=list(iter=500, thin=1,
+                      seed = 12345,
+                      alpha=NULL))
+
+# Display topic prevalance in documents as a table
+tidy(mod, "gamma") %>% spread(topic, gamma)
+```
+
