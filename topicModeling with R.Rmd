@@ -228,6 +228,11 @@ Same k, different alpha
 You are given a document-term matrix dtm describing the five-sentence corpus of two topics. You will re-run the LDA algorithm, changing the value of alpha, and compare the outcomes.
 
 ```{r Same k, different alpha}
+dtm <- corpus %>% 
+   unnest_tokens(input=text, output=word) %>% 
+   count(id, word) %>% 
+   cast_dtm(document=id, term=word, value=n)
+
 # Fit a topic model using LDA with Gibbs sampling
 mod = LDA(x=dtm, k=2, method="Gibbs", 
           control=list(iter=500, thin=1,
@@ -238,3 +243,86 @@ mod = LDA(x=dtm, k=2, method="Gibbs",
 tidy(mod, "gamma") %>% spread(topic, gamma)
 ```
 
+Probabilities of words in topics
+Parameter alpha determines the values of probabilities that a document belongs to a topic. Parameter delta does the same for probability distribution of words over topics. By default, delta is set to 0.1. You will fit a model with a different delta and make a plot of results.
+```{r Probabilities of words in topics}
+# Fit the model for delta = 0.1
+mod <- LDA(x=dtm, k=2, method="Gibbs",
+         control=list(iter=500, seed=12345, alpha=1, delta=0.1))
+
+# Define which words we want to examine
+my_terms = c("loans", "bank", "opened", "pay", "restaurant", "you")
+
+# Make a tidy table
+t <- tidy(mod, "beta") %>% filter(term %in% my_terms)
+
+# Make a stacked column chart of word probabilities
+ggplot(t, aes(x=term, y=beta)) + geom_col(aes(fill=factor(topic))) +
+  theme(axis.text.x=element_text(angle=90))
+
+
+
+
+# Fit the model for delta = 0.5
+mod <- LDA(x=dtm, k=2, method="Gibbs",
+         control=list(iter=500, seed=12345, alpha=1, delta=0.5))
+
+# Define which words we want to examine
+my_terms = c("loans", "bank", "opened", "pay", "restaurant", "you")
+
+# Make a tidy table
+t <- tidy(mod, "beta") %>% filter(term %in% my_terms)
+
+# Make a stacked column chart
+ggplot(t, aes(x=term, y=beta)) + geom_col(aes(fill=factor(topic))) +
+  theme(axis.text.x=element_text(angle=90))
+```
+
+Regex patterns for entity matching
+Vector text contains text of chapters of The Byzantine Empire by Charles Oman. You will experiment with the regex patterns for entity matching.
+
+```{r Regex patterns for entity matching}
+text <- readRDS('data/text.rds')
+# Regex pattern for an entity and word context
+p1 <- "( [a-z]+){2}( (St[.] )?[A-Z][a-z]+)+( [a-z]+){2}"
+
+# Obtain the regex match object from gregexpr
+m <- gregexpr(p1, text)
+
+# Get the matches and flatten the list
+v <- unlist(regmatches(text, m))
+
+# Find the number of elements in the vector
+length(v)
+
+
+
+# Regex pattern for an entity and word context
+p2 <- "( [a-z]+){2}( (St[.] )?[A-Z][a-z]+( (of|the) [A-Z][a-z]+)?)+( [a-z]+){2}"
+
+# Obtain the regex match object from gregexpr
+m <- gregexpr(p2, text)
+
+# Get the matches and flatten the list
+v <- unlist(regmatches(text, m))
+
+# Find the number of elements in the vector
+length(v)
+
+```
+
+
+Making a corpus
+You are given the pattern entity_pattern for the named entity. Vector v contains strings with named entities and two words to the left and to the right of the entity. You are going to make a table containing entity and its context as two columns
+
+
+```{r Making a corpus}
+# Print out contents of the `entity_pattern`
+entity_pattern = "( (St[.] )?[A-Z][a-z]+( (of|the) [A-Z][a-z]+)?)+"
+
+# Remove the named entity from text
+v2 <- gsub(entity_pattern, "", v)
+
+# Display the head of v2
+head(v2)
+```
