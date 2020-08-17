@@ -66,6 +66,7 @@ mod2 <- LDA(x=dtm, k=2, method="Gibbs",
 # Display the probabilities of topics in documents side by side
 tidy(mod2, matrix = 'gamma') %>% spread(topic, gamma)
 ```
+Making a dtm refresher
 
 You are given a table corpus: column text contains the documents, column id - the document ids. Your task is to make a document-term matrix. You've done this before, so it should be easy.
 
