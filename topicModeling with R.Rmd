@@ -26,9 +26,21 @@ In this exercise you will work through all steps involved in making a topic mode
 
 You are given data frame corpus with two columns: id is the document id, and text is the text of the document.
 
+**Instructions**
+
+Generate the document-term matrix. The input is the data frame corpus with two columns: id for document id, and text for document text. You will be using unnest_tokens, count, and cast_dtm. Fill in the blanks to generate the matrix.
+
+Now that you have the document-term matrix, you can run the LDA function to fit a topic model. Run the model for two topics (k=2). Keep the control list parameters unchanged.
+
+With the model object in hand, you can extract matrices beta and gamma for word and document probabilities, respectively. Retrieve the probabilities of word will belonging to topics 1 and 2. The column containing words will be named term.
+
+Make a stacked column chart showing the probabilities of documents belonging to topics.
+tidy will return a table with columns document for document id, topic for topic number, and gamma for the value of probability.
+Retrieve matrix gamma, use document for x, gamma for y in the aesthetics, and topic as fill in the geom_col verb.
 
 ```{r Simple LDA model}
 corpus <- readRDS('data/corpus.rds')
+# Generate the document-term matrix
 dtm <- corpus %>% 
    unnest_tokens(input=text, output=word) %>% 
    count(id, word) %>% 
@@ -48,9 +60,35 @@ tidy(mod, matrix="gamma") %>%
   geom_col(aes(fill=topic))
 
 ```
+
+**Probabilities of words in topics**
+You will now practice retrieving information about probabilities of words in topics.
+
+**Instructions**
+
+You are given a document-term matrix dtm constructed from the same corpus of five sentences, but using only seven words. Using your knowledge that a document-term matrix has the terms as its column names, display the terms of the dtm.
+
+Fit an LDA topic model for two topics. Argument x should be the document-term matrix, number of clusters k should be 2, method should be Gibbs. Keep the control argument unchanged.
+```{r Probabilities of words in topics}
+# Display column names
+colnames(dtm)
+
+# Fit an LDA model for 2 topics using Gibbs sampling
+mod <- LDA(x=dtm, k=2, method="Gibbs", 
+           control=list(alpha=1, seed=10005, thin=1))
+```
+
+
 **Effect of argument alpha**
 In this exercise you will compare how the quality of model's fit to data varies with argument alpha
 
+**Instructions**
+
+You have a document-term matrix dtm containing word frequencies for the corpus of 5 sentences with the vocabulary of 7 words.
+Fit LDA topic model for 2 topics. Keep the arguments seed and alpha unchanged.
+
+Display the probabilities of topics in documents. Use function tidy to retrieve matrix gamma from the LDA model object.
+spread will cast it into a table with two columns.
 ```{r Effect_of_argument_alpha}
 # Fit LDA topic model using Gibbs sampling for 2 topics
 mod1 <- LDA(x=dtm, k=2, method="Gibbs",
@@ -70,6 +108,11 @@ tidy(mod2, matrix = 'gamma') %>% spread(topic, gamma)
 
 You are given a table corpus: column text contains the documents, column id - the document ids. Your task is to make a document-term matrix. You've done this before, so it should be easy.
 
+**Instructions**
+
+Put text as the input argument in unnest_tokens.
+Put id and word as the arguments in count.
+Put id as the document argument and word as the term argument in the call to cast_dtm.
 ```{r Making_a_dtm_refresher}
 # Create the document-term matrix
 dtm <- corpus %>%
@@ -84,6 +127,9 @@ as.matrix(dtm)
 **Removing stopwords**
 It takes only one new line of code to remove the stopwords. Fill in the function names to make the code work.
 
+**Instructions**
+
+The anti_join must come in after unnest_tokens but before count.
 ```{r Removing_stopwords}
 # Create the document-term matrix with stop words removed
 dtm <- corpus %>%
@@ -97,7 +143,9 @@ as.matrix(dtm)
 ```
 **Keeping the needed words**
 You are given the table with documents corpus and the table dictionary with one column - word, - containing the words we want to keep in the document-term matrix. Use inner_join to create a document-term matrix with the needed words.
+
 **Instructions**
+
 Perform inner join on the table dictionary. The column names match, so you do not need to use the by argument.
 ```{r Keeping the needed words}
 dictionary <-data.frame(word=c( "bank", "fines", "loans", "pay", "new", "opened", "restaurant"))
@@ -113,8 +161,15 @@ as.matrix(dtm)
 ```
 
 
-Wordcloud of term frequency
+**Wordcloud of term frequency**
+
 You are given table corpus containing the "toy" corpus with five sentences/documents. You will practice modifying the word cloud to make it more interesting.
+
+**Instructions**
+
+Using table corpus, generate the table with counts of words in the whole corpus. Save the result to variable word_frequencies.
+
+Create a wordcloud showing top 10 words, with the threshold of minimal word frequency set to 1.
 
 ```{r Wordcloud of term frequency}
 # Generate the counts of words in the corpus
@@ -133,11 +188,16 @@ wordcloud(words=word_frequencies$word,
 ```
 
 
-LDA model fitting - first iteration
+**LDA model fitting - first iteration**
 This exercise covers the steps from making a document-term matrix to fitting a topic model and examining the terms in topics.
 
 You are given a table history with two columns: chapter for chapter number, and text for chapter text.
 
+**Instructions**
+
+Create a document-term matrix containing counts of words in chapters. Use anti_join to exclude stopwords. Save the result into variable dtm
+
+Using the document-term matrix you just built, fit an LDA topic model for four topics. (We will cover how to find the best number of topics in chapter 4.) Use Gibbs method. Do not modify the control list.
 
 ```{r LDA model fitting - first iteration}
 history <- readRDS('data/history.rds') %>% filter(!is.na(text))
@@ -155,11 +215,16 @@ mod <- LDA(x=dtm, k=4, method="Gibbs",
 # Display top 15 words of each topic
 terms(mod, k=15)
 ```
-Capturing the actions - dtm with verbs
+**Capturing the actions - dtm with verbs**
 In this exercise you will construct the dtm that will consist entirely of verbs, and then re-run the LDA algorithm.
 
 You are given the dataframe verbs containing present and past tense forms of English verbs.
 
+**Instructions**
+
+Modify the old code so that instead of removing stopwords it will return a dtm that contains only the past tense verbs. You will need to join on columns word and past.
+
+Fit the Gibbs-sampling LDA topic model with four topics. Do not modify the control argument.
 ```{r Capturing the actions - dtm with verbs}
 # Display the structure of the verbs dataframe
 verbs <- readRDS('data/verbs.rds')
@@ -180,9 +245,14 @@ mod <- LDA(x=dtm, k=4, method="Gibbs",
 terms(mod, k=25)
 ```
 
-Making a chart
+**Making a chart**
 Variable mod contains the LDA model that you fitted in the previous exercise. All necessary libraries have already been loaded for you.
 
+Make a stacked column chart showing proportions of topics in documents/chapters.
+
+To remind yourself what the topics were about, display the words with probability above 0.0075 in each topic.
+
+Use function terms with argument threshold
 ```{r Making a chart}
 # Extract matrix gamma and plot it
 tidy(mod, "gamma") %>% 
@@ -208,6 +278,11 @@ The flaw of function terms() is that it does not display the absolute value of t
 
 You are given the object with LDA model mod. You're going to complete the script to draw four wordlcouds, one for each topic. You will be able to cycle through them in the output window.
 
+**Instructions**
+
+Generate a table of word frequencies for each topic.
+
+Display the word cloud. You need to pass the terms to the wordargument and the frequencies to the freq argument. The for-loop will do one chart per topic.
 
 ```{r Making a chartUse wordclouds}
 # Display wordclouds one at a time
@@ -227,11 +302,16 @@ for (j in 1:4) {
 }
 ```
 
-Same k, different alpha
+**Same k, different alpha**
 You are given a document-term matrix dtm describing the five-sentence corpus of two topics. You will re-run the LDA algorithm, changing the value of alpha, and compare the outcomes.
 
 When alpha is NULL, the package sets alpha = 50/k which in our case is 25. This favors topic proportions that are nearly equal to each other
 
+**Instructions**
+
+Experiment with fitting a topic model and clicking Run Code for the following values of alpha: 0.5, 1, 2, and NULL.
+
+When you are done, click Submit Answer with alpha equal to NULL.
 ```{r Same k, different alpha}
 dtm <- corpus %>%
   unnest_tokens(output=word, input=text) %>%
@@ -280,8 +360,14 @@ mod = LDA(x=dtm, k=2, method="Gibbs",
 tidy(mod, "gamma") %>% spread(topic, gamma)
 ```
 
-Probabilities of words in topics
+**Probabilities of words in topics**
 Parameter alpha determines the values of probabilities that a document belongs to a topic. Parameter delta does the same for probability distribution of words over topics. By default, delta is set to 0.1. You will fit a model with a different delta and make a plot of results.
+
+**Instructions**
+
+Fit the model for delta set to 0.1, create a tidy table containing probabilities beta for words from the my_terms vector and make a stacked column chart from the data.
+
+Fit the model for delta set to 0.5, create a tidy table containing probabilities beta for words from the my_terms vector and make a stacked column chart from the data.
 ```{r Probabilities of words in topics}
 # Fit the model for delta = 0.1
 mod <- LDA(x=dtm, k=2, method="Gibbs",
@@ -318,6 +404,17 @@ ggplot(t, aes(x=term, y=beta)) + geom_col(aes(fill=factor(topic))) +
 **Regex patterns for entity matching**
 
 Vector text contains text of chapters of The Byzantine Empire by Charles Oman. You will experiment with the regex patterns for entity matching.
+
+**Instructions**
+
+You are given a pattern that will match a capitalized word and two lowercase words before and after. Find how many times this pattern matched.
+
+The vertical bar | in regex means logical OR. You now have a modified pattern, p2, that has a nested group ( (of|the) [A-Z][a-z]+)?. It matches entities like 'Alexander the Great' or 'Darius of Persia'.
+Find how many entities you match now.
+
+Question
+Which pattern, p1 or p2, returned more matches?
+p2 returned more matches
 ```{r Regex patterns for entity matching}
 text <- readRDS('data/text.rds')
 # Regex pattern for an entity and word context
@@ -346,6 +443,7 @@ v <- unlist(regmatches(text, m))
 
 **Making a corpus**
 You are given the pattern entity_pattern for the named entity. Vector v contains strings with named entities and two words to the left and to the right of the entity. You are going to make a table containing entity and its context as two 
+
 **Instructions**
 
 Print out the contents of the pattern string entity_pattern.
