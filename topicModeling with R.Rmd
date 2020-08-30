@@ -21,13 +21,13 @@ library(wordcloud)
 library(gutenbergr)
 ```
 
-Simple LDA model
+**Simple LDA model**
 In this exercise you will work through all steps involved in making a topic model analysis. For simplicity, we will use the tiny corpus of five sentences/documents that you have seen earlier.
 
 You are given data frame corpus with two columns: id is the document id, and text is the text of the document.
 
 
-```{r exercice 1}
+```{r Simple LDA model}
 corpus <- readRDS('data/corpus.rds')
 dtm <- corpus %>% 
    unnest_tokens(input=text, output=word) %>% 
@@ -48,7 +48,7 @@ tidy(mod, matrix="gamma") %>%
   geom_col(aes(fill=topic))
 
 ```
-Effect of argument alpha
+**Effect of argument alpha**
 In this exercise you will compare how the quality of model's fit to data varies with argument alpha
 
 ```{r Effect_of_argument_alpha}
@@ -66,7 +66,7 @@ mod2 <- LDA(x=dtm, k=2, method="Gibbs",
 # Display the probabilities of topics in documents side by side
 tidy(mod2, matrix = 'gamma') %>% spread(topic, gamma)
 ```
-Making a dtm refresher
+**Making a dtm refresher**
 
 You are given a table corpus: column text contains the documents, column id - the document ids. Your task is to make a document-term matrix. You've done this before, so it should be easy.
 
@@ -81,7 +81,7 @@ dtm <- corpus %>%
 as.matrix(dtm)
 ```
 
-Removing stopwords
+**Removing stopwords**
 It takes only one new line of code to remove the stopwords. Fill in the function names to make the code work.
 
 ```{r Removing_stopwords}
@@ -95,8 +95,10 @@ dtm <- corpus %>%
 # Display the matrix
 as.matrix(dtm)
 ```
-Keeping the needed words
+**Keeping the needed words**
 You are given the table with documents corpus and the table dictionary with one column - word, - containing the words we want to keep in the document-term matrix. Use inner_join to create a document-term matrix with the needed words.
+**Instructions**
+Perform inner join on the table dictionary. The column names match, so you do not need to use the by argument.
 ```{r Keeping the needed words}
 dictionary <-data.frame(word=c( "bank", "fines", "loans", "pay", "new", "opened", "restaurant"))
 # Perform inner_join with the dictionary table
@@ -313,7 +315,8 @@ ggplot(t, aes(x=term, y=beta)) + geom_col(aes(fill=factor(topic))) +
 ```
 
 
-Regex patterns for entity matching
+**Regex patterns for entity matching**
+
 Vector text contains text of chapters of The Byzantine Empire by Charles Oman. You will experiment with the regex patterns for entity matching.
 ```{r Regex patterns for entity matching}
 text <- readRDS('data/text.rds')
@@ -341,8 +344,20 @@ v <- unlist(regmatches(text, m))
 
 ```
 
-Making a corpus
-You are given the pattern entity_pattern for the named entity. Vector v contains strings with named entities and two words to the left and to the right of the entity. You are going to make a table containing entity and its context as two columns.
+**Making a corpus**
+You are given the pattern entity_pattern for the named entity. Vector v contains strings with named entities and two words to the left and to the right of the entity. You are going to make a table containing entity and its context as two 
+**Instructions**
+
+Print out the contents of the pattern string entity_pattern.
+Function gsub() can be used to cut out strings by replacing them with zero-length strings, e.g. gsub('[0-9]', "", "Year of 1203 CE") will return Year of CE. Use this trick to remove the named entity from text. This will produce the entity's context.
+
+Regex capture groups can be used to add suffixes to lowercase. You are given a pattern p that will add suffixes L1 and L2. Modify p so that gsub() would also add suffixes R1 and R2 to words occurring on the right side of the context.
+Add backreferences to capture groups 3 and 4 and add suffixes 'R1' and 'R2' respectively.
+
+By now you have vector v2 which contains the new "documents" - context words of named entities. You have figured out how to add suffixes to the context words using gsub(). Now, two last steps toward making a corpus: converting the context strings into a data frame, and assigning named entity string as document ids.
+
+Generate a regular expression match object by using gregexpr() First argument is the pattern, second argument is text. Store the result in variable re_match.
+Extract named entities and make a data frame named corpus with columns doc_id and text to make a document-term matrix. Function regmatches() will return a list with matched strings, which you can flatten by using unlist().
 ```{r Regex patterns for entity matching}
 # Print out contents of the `entity_pattern`
 entity_pattern = "( (St[.] )?[A-Z][a-z]+( (of|the) [A-Z][a-z]+)?)+"
@@ -375,6 +390,15 @@ corpus <- data.frame(doc_id = doc_id, text = context, stringsAsFactors = F)
 **From dtm to topic model**
 You are given data frame corpus. Each row corresponds to one occurrence of a named entity. Column doc_id contains the entity, text - the context words with suffixes. You will build a document-term matrix and will fit a topic model.
 
+**Instructions**
+
+We need to combine text from multiple occurrences of the same entity into one document. Using dplyr, for each entity (doc_id) generate a summary variable doc that will contain combined text strings. Save the result into table corpus2.
+
+Now that we have dataframe corpus2, we are on familiar grounds. Create a document-term matrix and save it into variable dtm.
+
+Fit a Latent Dirichlet allocation topic model with k=3. Keep the control argument as is.
+
+Using function tidy, extract matrix gamma with probabilities of topics in documents, and convert it to a wide format using spread.
 ```{r From dtm to topic model}
 # Summarize the text to produce a document for each doc_id
 corpus2 <- corpus %>% group_by(doc_id) %>% 
@@ -394,9 +418,14 @@ topics <- tidy(mod, matrix="gamma") %>%
 	spread(topic, gamma)
 ```
 
-Train a topic model
+**Train a topic model**
 You are given a table corpus2: column doc_id contains the named entity, column doc contains context words of entities. You will take a random sample of documents, construct a training dataset and use it to make a topic model.
 
+**Instructions**
+
+Take a sample of 20 random integers in the range from 1 to nrow(corpus2) and assign it to variable r. These will be the testing rows.
+Pass a subset of the dtm, with the testing rows excluded, as an argument to unnest_tokens, to create a dtm with training data.
+Fit an LDA topic model for k=3 on the training data.
 ```{r Train a topic model}
 # Set random seed for reproducability
 set.seed(12345)
@@ -415,9 +444,14 @@ train_mod <- LDA(x=train_dtm, k=3, method="Gibbs",
                              iter=1000, thin=1))
 ```
 
-Align corpus
+**Align corpus**
 You have LDA model object train_mod and table corpus2 with initial data. You will need to align the corpus of the test records and make a document-term matrix for testing.
 
+**Instructions**
+
+Rerun sample.int with set.seed to reproduce the row indices for testing rows.
+Extract vocabulary of the training model using tidy
+Create a table of counts, making sure that you keep only the rows with words that were present in the training data
 ```{r Align corpus}
 # Get the test row indices
 set.seed(12345)
@@ -441,8 +475,14 @@ test_dtm <- test_table %>%
 ```
 
 
-Classify test data
+**Classify test data**
 You have a data object train_mod with an LDA model, and a document-term matrix test_dtm with data for the test cases. Now you can see how well (or how poorly) our classifier performs.
+
+**Instructions**
+
+Obtain posterior probabilities for test documents using function posterior().
+Probabilities of topics in documents are contained in the element $topics inside the result list. Display the matrix with topic probabilities.
+
 
 ```{r Classify test data}
 # Obtain posterior probabilities for test documents
@@ -451,4 +491,237 @@ results <- posterior(object=train_mod, newdata=test_dtm)
 # Display the matrix with topic probabilities
 results$topics
 ```
+**Explore the results**
+Print out the table results$topics and note the values for the rows where the document name is " Amalphi". (The space before the entity is the result of the pattern we used.) Look up the articles in Wikipedia for Amalphi. Choose the option below that describes the results:
+Amalphi is a town and topic 1 corresponds to geographic names.
 
+**Preparing the dtm**
+You are given a dataframe df containing 90 abstracts of NSF awards. Its three columns are Abstract, AwardNumber, and field. Your task is to construct a document-term matrix, with stop words being filtered out. Use AwardNumber as the document ID.
+
+**Instructions**
+
+Split the Abstract column into tokens.
+Remove stopwords.
+Count the number of occurrences.
+Create a document term matrix.
+
+```{r Preparing the dtm}
+df = readRDS('data/df.rds')
+# Split the Abstract column into tokens
+dtm <- df %>% unnest_tokens(input=Abstract, output=word) %>% 
+   # Remove stopwords
+   anti_join(stop_words) %>% 
+   # Count the number of occurrences
+   count(AwardNumber, word) %>% 
+   # Create a document term matrix
+   cast_dtm(document=AwardNumber, term=word, value=n)
+
+```
+
+
+**Filtering by word frequency**
+The small size of our corpus poses a problem: some terms will occur only once and are not useful for inferring the topics. In this exercise your task is to remove the words whose corpus-wide frequency is less than 10. This will require grouping by words and then adding up per-document frequencies.
+
+Unnesting tokens and removing stopwords using anti_join() has already been done for you.
+
+**Instructions**
+
+Count occurrences within documents/awards.
+Group the data using word as the grouping variable.
+Filter using a nested call to sum(n) for corpus-wide frequency that is 10 or higher.
+Ungroup the data and create a document-term matrix.
+
+```{r Filtering by word frequency}
+dtm <- df %>% unnest_tokens(input=Abstract, output=word) %>% 
+   anti_join(stop_words) %>% 
+   # Count occurences within documents
+   count(AwardNumber, word) %>%
+   # Group the data
+   group_by(word) %>% 
+   # Filter for corpus wide frequency
+   filter(sum(n) >= 10) %>% 
+   # Ungroup the data andreate a document term matrix
+   ungroup() %>% 
+   cast_dtm(document=AwardNumber, term=word, value=n)
+dtm
+```
+
+**Fitting one model**
+With the document-term matrix in hand, your task now is to fit a topic model and examine its log-likelihood and perplexity.
+
+**Instructions**
+Create a LDA model. Set k=3 and method="Gibbs". Do not modify the control argument.
+Retrieve the log-likelihood of the model.
+Find perplexity for the dataset.
+
+```{r Fitting one model}
+# Create a LDA model
+mod <- LDA(x=dtm, method="Gibbs", k=3, 
+          control=list(alpha=0.5, seed=1234, iter=500, thin=1))
+          
+# Retrieve log-likelihood
+logLik(mod)
+
+# Find perplexity
+perplexity(object=mod, newdata=dtm)
+
+```
+
+**Using perplexity to find the best k**
+To save you time, you are given a list 'models' that contains LDA models fitted for values of k from 2 to 10. You will examine the current quality of fit, let LDA do more iterations on the models, and compare the outcomes.
+
+**Instructions 1/4**
+Generate a plot of perplexity vs. k similar to the one you've seen in the lesson.
+As a reminder, you can iterate over a list using function sapply. If you know that each element in a list Z contains an element named p, you can make a vector with values of p by calling sapply(Z, '[[', 'p')
+```{r Using perplexity to find the best k 1}
+# Display names of elements in the list
+names(models[[1]])
+
+# Retrieve the values of k and perplexity, and plot perplexity vs k
+x <- sapply(models, '[[', 'k')
+y <- sapply(models, '[[', 'perplexity')
+plot(x, y, xlab="number of clusters, k", ylab="perplexity score", type="o")
+
+```
+
+**Instructions 2/4**
+
+Run each model from the models list for an additional 100 iterations. Record the new perplexity scores. An LDA model can be retrieved using models[[i]]$model reference.
+
+```{r Using perplexity to find the best k 2}
+# Record the new perplexity scores
+new_perplexity_score <- numeric(length(models))
+
+# Run each model for 100 iterations
+for (i in seq_along(models)) {
+  mod2 <- LDA(x=dtm, model=models[[i]]$model,
+             control=list(iter=100, seed=12345, thin=1))
+  new_perplexity_score[i] <- perplexity(object=mod2, newdata=dtm)
+}
+```
+
+
+**Instructions 3/4**
+
+Generate a plot of new perplexity scores.
+```{r Using perplexity to find the best k 3}
+# Record the new perplexity scores
+new_perplexity_score <- numeric(length(models))
+
+# Run each model for 100 iterations
+for (i in seq_along(models)) {
+  mod2 <- LDA(x=dtm, model=models[[i]]$model,
+             control=list(iter=100, seed=12345, thin=1))
+  new_perplexity_score[i] <- perplexity(object=mod2, newdata=dtm)
+}
+
+# Specify the possible values of k and build the plot
+k <- 2:10
+plot(x=k, y=new_perplexity_score, xlab="number of clusters, k", 
+     ylab="perplexity score", type="o")
+
+```
+
+
+**Instructions 4/4**
+Question
+Did running the models for additional 100 iterations change the preferred number of topics?
+No. The preferred value is the same, k=6
+
+
+**Generating chunk numbers**
+You are given a table history with two columns: chapter for chapter number, and text for chapter text. Assuming a text chunk size of 1000 words, create a new column document_number containing the sequential number of a chunk.
+
+**Instructions**
+
+Unnest the tokens.
+Assign table row number as the word index number.
+Do integer division by 1000 and assign the result to a new column document_number.
+
+```{r Generating chunk numbers}
+t <- history %>% 
+        # Unnest the tokens
+		unnest_tokens(input=text, output=word) %>% 
+        # Create a word index column
+		mutate(word_index = 1:n()) %>% 
+        # Create a document number column
+		mutate(document_number = word_index %/% 1000 + 1)
+t
+```
+
+**Inner join and cast dtm**
+You have the table t that you created in the previous exercise. It has columns word and document_number. You also have the table verbs with columns present and past containing present tense and past tense forms of verbs.
+
+Like you did in the second chapter of the course, join both tables to keep only the past tense verbs, and then generate the word counts and create the document-term matrix.
+
+**Instructions**
+Perform inner_join() using columns word and past as the keys.
+Count word using document_number as a grouping variable.
+Cast the table into a document-term matrix.
+```{r Generating chunk numbers}
+dtm <- t %>% 
+	# Join verbs on "word" and "past"
+	inner_join(verbs, by=c("word"="past")) %>% 
+    # Count word
+	count(document_number, word) %>% 
+    # Create a document-term matrix
+	cast_dtm(document=document_number, term=word, value=n)
+
+```
+
+
+
+**Topics without seedwords**
+You are given LDA model mod fitted on the corpus of named entities, for k=3. Each document corresponds to one named entity. Your task will be to determine which topic corresponds to names, and which - to geographic entities.
+
+**Instructions**
+Using tidy, convert matrix gamma to tidy table.
+Convert the table from tidy to wide format.
+Display the rows in which column document matches entities " Adrianople", " Emperor Heraclius", " Daniel", " Africa", and " African".
+
+```{r Topics without seedwords}
+# Store the names of documents in a vector
+required_documents <- c(" Africa", " Emperor Heraclius", 
+                       " Adrianople", " Daniel", " African")
+
+# Convert table into wide format
+tidy(mod, matrix="gamma") %>% 
+   spread(key=topic, value=gamma) %>% 
+   # Keep only the rows with document names matching the required documents
+   filter(document %in% required_documents)
+required_documents
+```
+
+**Topics with seedwords**
+You are given a document-term matrix dtm for the named entities. Your task is to create a seedwords matrix, initialize it so that topic 1 would correspond to persons, topic 2 - to places, fit the model, and examine the topic probabilities for documents. As a reminder, the terms in dtm are the context words with suffix indicating position, e.g. "to_l2".
+
+An empty matrix seedword has been created for you, with number of rows equal to the number of topics k and number of columns equal to the number of terms in dtm.
+
+
+umber of terms in dtm.
+
+**Instructions**
+Set the column names of the matrix equal to column names of dtm.
+Set the weight for "defeated_l2" in topic 1 equal to 1, same for "across_l2" in topic 2.
+Fit the topic model using seedwords for k=3.
+Display the topic probabilities for documents " Daniel", " Adrianople", and " African".
+
+
+```{r Topics with seedwords}
+# Set up the column names
+colnames(seedwords) <- colnames(dtm)
+
+# Set the weights
+seedwords[1, "defeated_l2"] = 1
+seedwords[2, "across_l2"] = 1
+
+# Fit the topic model
+mod <- LDA(dtm, k=3, method="Gibbs",
+         seedwords=seedwords,
+         control=list(alpha=1, iter=500, seed=1234))
+
+# Examine topic assignment in the fitted model
+tidy(mod, "gamma") %>% spread(topic, gamma) %>% 
+	filter(document %in% c(" Daniel", " Adrianople", " African"))
+
+```
