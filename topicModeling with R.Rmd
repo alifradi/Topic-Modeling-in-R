@@ -796,7 +796,7 @@ You are given a document-term matrix dtm for the named entities. Your task is to
 An empty matrix seedword has been created for you, with number of rows equal to the number of topics k and number of columns equal to the number of terms in dtm.
 
 
-umber of terms in dtm.
+Number of terms in dtm.
 
 **Instructions**
 Set the column names of the matrix equal to column names of dtm.
