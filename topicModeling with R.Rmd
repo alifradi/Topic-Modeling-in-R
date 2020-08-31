@@ -514,6 +514,7 @@ mod <- LDA(x = dtm, k = 3, method = "Gibbs",
 # Create a table with probabilities of topics in documents
 topics <- tidy(mod, matrix="gamma") %>% 
 	spread(topic, gamma)
+
 ```
 
 **Train a topic model**
@@ -613,7 +614,8 @@ dtm <- df %>% unnest_tokens(input=Abstract, output=word) %>%
    count(AwardNumber, word) %>% 
    # Create a document term matrix
    cast_dtm(document=AwardNumber, term=word, value=n)
-
+dtm
+as.matrix(dtm)
 ```
 
 
@@ -672,6 +674,17 @@ To save you time, you are given a list 'models' that contains LDA models fitted 
 Generate a plot of perplexity vs. k similar to the one you've seen in the lesson.
 As a reminder, you can iterate over a list using function sapply. If you know that each element in a list Z contains an element named p, you can make a vector with values of p by calling sapply(Z, '[[', 'p')
 ```{r Using perplexity to find the best k 1}
+models <- list()
+
+for (k in 2:10) {
+  l= list()
+  l$k<- k
+  l$model           <-  mod <- LDA(x=dtm, method="Gibbs", k=k,
+                                            control=list(alpha=0.5,seed=1234, iter=500, thin=1))
+  l$log_likelihood  <- logLik( l$model )
+  l$perplexity      <- perplexity(object= l$model , newdata=dtm)
+  models[[length(models)+1]] <- l
+}
 # Display names of elements in the list
 names(models[[1]])
 
@@ -759,12 +772,12 @@ Cast the table into a document-term matrix.
 ```{r Generating chunk numbers}
 dtm <- t %>% 
 	# Join verbs on "word" and "past"
-	inner_join(verbs, by=c("word"="past")) %>% 
+	inner_join(verbs, by=c("word"="Past")) %>% 
     # Count word
 	count(document_number, word) %>% 
     # Create a document-term matrix
 	cast_dtm(document=document_number, term=word, value=n)
-
+dtm
 ```
 
 
@@ -806,9 +819,16 @@ Display the topic probabilities for documents " Daniel", " Adrianople", and " Af
 
 
 ```{r Topics with seedwords}
-# Set up the column names
+dtm <- corpus2 %>% unnest_tokens(input = doc, output = word) %>% 
+	count(doc_id, word) %>% 
+	cast_dtm(document = doc_id, term = word, value = n)
+seedwords <- data.frame(
+  topic1 = rep(0,1803) ,
+   topic2 = rep(0,1803) ,
+   topic3 = rep(0,1803) 
+) %>% t() 
 colnames(seedwords) <- colnames(dtm)
-
+seedwords <- as.matrix(seedwords)
 # Set the weights
 seedwords[1, "defeated_l2"] = 1
 seedwords[2, "across_l2"] = 1
